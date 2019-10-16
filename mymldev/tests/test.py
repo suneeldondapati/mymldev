@@ -1,16 +1,9 @@
-#!/usr/bin/env python3
-#-*- coding: utf-8 -*-
-"""
-Filename: test.py
-Date: 2019-08-30 16:34
-Project: my_code
-AUTHOR: Suneel Dondapati
-"""
 import pandas as pd
 import numpy as np
 from sklearn import datasets
-from mymldev.model.classifier import XGBClassifier
-from mymldev.metrics.classification import ConfusionMatrix
+from ..model.classifier import XGBClassifier
+from ..metrics.classification import ConfusionMatrix
+from ..utils.data import XYData
 
 
 def load_data():
@@ -30,8 +23,10 @@ def test_xgbclassifier():
     xgbc = XGBClassifier()
     xgbc.fit(X_df, y_df)
     print(xgbc.feature_importance_)
-    xgbc_metric = xgbc.classification_metric(X_df, y_df, labels={1: 'Virginica', 0: 'Non-Virginica'})
+    xgbc_metric = xgbc.classification_metric(X_df, y_df,
+                                             labels={1: 'Virginica', 0: 'Non-Virginica'})
     print(f'AUC: {xgbc_metric.auc_}')
+    print(f'Gains table: {xgbc_metric.gains_table_}')
     for threshold in [0.3, 0.5, 0.8]:
         print(f'Metrics At threshold: {threshold}')
         cfm_threshold = xgbc_metric.confusion_matrix(threshold)
@@ -60,6 +55,7 @@ def test_confusionmatrix():
     y_pred_binary = np.array([0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1])
     y_true_multiclass = np.array([1, 0, 2, 0, 1, 2, 1, 0, 2, 0, 1, 2, 1])
     y_pred_multiclass = np.array([1, 1, 2, 0, 0, 1, 1, 0, 2, 1, 1, 0, 0])
+
     def cfm(y_true, y_pred):
         cfm = ConfusionMatrix(y_true, y_pred)
         print(f'Confusion Matrix: {cfm.table_}')
@@ -80,6 +76,17 @@ def test_confusionmatrix():
     cfm(y_true_multiclass, y_pred_multiclass)
 
 
+def test_xydata():
+    X, y, feature_names = load_data()
+    data = pd.DataFrame(X, columns=feature_names)
+    data['species_type'] = y
+    data['tmp_col'] = 'tmp'
+    test = XYData(data, x_cols=feature_names, y_col='species_type')
+    assert set(feature_names) & set(test.X.columns) == set(feature_names)
+    assert test.y.name == 'species_type'
+    assert set(test.excluded_X.columns) == set(data.columns[~data.columns.isin(feature_names + ['species_type'])])
+
+
 if __name__ == '__main__':
-    print(f'Testing Confusion Matrix:\n{test_confusionmatrix()}')
+    # print(f'Testing Confusion Matrix:\n{test_confusionmatrix()}')
     print(f'Testing XGB Classifier:\n{test_xgbclassifier()}')

@@ -51,15 +51,15 @@ class Classifier(metaclass=ABCMeta):
 class XGBClassifier(Classifier):
     """XGBClassifier
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     params: dict
         Model parameters
     """
     def __init__(self, params=None):
         super().__init__(self.__set_xgb_params(params))
         self.model = None
-        self._feature_importance_ = None
+        self._feature_importance_ = pd.DataFrame()
 
     @staticmethod
     def __set_xgb_params(xgb_params_in):
@@ -84,7 +84,7 @@ class XGBClassifier(Classifier):
     def feature_importance_(self):
         """XGBoost Classifier feature importance
         """
-        if self._feature_importance_:
+        if not self._feature_importance_.empty:
             return self._feature_importance_
         if not self.model:
             raise AttributeError('Fit the model before calling feature_importance')
@@ -102,7 +102,10 @@ class XGBClassifier(Classifier):
         super().classification_metric(X, y)
         if not self.model:
             raise AttributeError('Fit the model before calling classification_metric')
-        bclf_metrics = BinaryClassificationMetrics(self.model, X.copy(), y.copy(), labels=labels)
+        if len(np.unique(y)) != 2:
+            # TODO: Insert code for MultiClassClassificationMetrics
+            raise NotImplementedError('Classification metrics for Multi-class classification is not implemented.')
+        bclf_metrics = BinaryClassificationMetrics(self.model, X, y, labels=labels)
         return bclf_metrics
 
 

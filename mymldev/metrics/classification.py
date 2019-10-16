@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import sklearn.metrics as mt
+from ..visualization.metrics import plot_roc
 from abc import ABCMeta, abstractmethod
 
 
@@ -289,14 +290,14 @@ class BinaryClassificationMetrics(ClassificationMetrics):
     labels: dict
         labels for y.
     predicted_proba: numpy.array
+        predicted probabilities for IDVs based on given model.
+    target_proba: numpy.array
         predicted probabilities for IDVs based on given model,
         assuming 'target' is '1'.
     __fpr: numpy.array
         False Positive Rates at different thresholds.
     __tpr: numpy.array
         True Positive Rates at different thresholds.
-    __thresholds: numpy.array
-        Thresholds.
     _threshold: float
         Threshold to be used for model predictions and metrics.
     _y_hat: numpy.array
@@ -311,8 +312,8 @@ class BinaryClassificationMetrics(ClassificationMetrics):
     def __init__(self, clf, X: pd.DataFrame, y: pd.Series, labels: dict = None):
         super().__init__(clf, X, y)
         self.labels = labels
-        self.predicted_proba = self.predicted_proba[:, 1]
-        self.__fpr, self.__tpr, self.__thresholds = mt.roc_curve(self.y.values, self.predicted_proba)
+        self.target_proba = self.predicted_proba[:, 1]
+        self.__fpr, self.__tpr, _ = mt.roc_curve(self.y.values, self.target_proba)
         self._threshold: float = 0.5
         self._y_hat = None
         self.cfm = pd.DataFrame()
@@ -324,11 +325,24 @@ class BinaryClassificationMetrics(ClassificationMetrics):
         return mt.auc(self.__fpr, self.__tpr)
 
     @property
-    def plot_roc_curve_(self):
+    def plot_roc_(self):
+        ax = plot_roc(self.y, self.predicted_proba)
+        return ax
+
+    @property
+    def plot_precision_recall_(self):
         raise NotImplementedError
 
     @property
-    def plot_precision_recall_curve_(self):
+    def plot_cumulative_gain_(self):
+        raise NotImplementedError
+
+    @property
+    def plot_lift_curve_(self):
+        raise NotImplementedError
+
+    @property
+    def plot_ks_statistic_(self):
         raise NotImplementedError
 
     @property
@@ -336,8 +350,8 @@ class BinaryClassificationMetrics(ClassificationMetrics):
         """pandas.DataFrame: Gains table."""
         if self._gains_table.empty:
             df = pd.DataFrame()
-            df['y'] = self.y
-            df['pred_prob'] = self.predicted_proba
+            df['y'] = self.y.values
+            df['pred_prob'] = self.target_proba
             try:
                 df['Decile'] = pd.qcut(df['pred_prob'], 10, labels=False)
             except ValueError:
@@ -348,6 +362,7 @@ class BinaryClassificationMetrics(ClassificationMetrics):
                        .count()
                        .unstack('y')
                        .sort_index(ascending=False))
+            lift_df = lift_df.fillna(0).astype(int)
             lift_df.index = np.arange(10)
             gains_df = pd.DataFrame()
             kwargs = {'Decile': lift_df.index + 1,
@@ -363,24 +378,23 @@ class BinaryClassificationMetrics(ClassificationMetrics):
             # gains_df['Cumulative Lift'] = (gains_df['Cumulative Targets'] /
             #                                (lift_df[1].sum() * (lift_df.index + 1) / 10))
             gains_sum = pd.DataFrame({}, columns=gains_df.columns, index=[0])
-            kwargs = {'Decile': 'Total',
-                      'No. of Observations': lambda x: x['No. of Observations'].sum(),
-                      'Number of Targets': lambda x: x['Number of Targets'].sum()}
-            gains_sum = gains_sum.assign(**kwargs)
+            gains_sum['Decile'] = 'Total'
+            gains_sum['No. of Observations'] = gains_df['No. of Observations'].sum()
+            gains_sum['Number of Targets'] = gains_df['Number of Targets'].sum()
             gains_table = pd.concat([gains_df, gains_sum], ignore_index=True)
             gains_table.fillna('', inplace=True)
             self._gains_table = gains_table
         return self._gains_table
 
     @property
-    def lift_score(self):
+    def lift_score_(self):
         """float: Lift score."""
         return self.gains_table_['Lift'].iloc[0]
 
     @property
     def y_hat(self):
         """np.array: Predicted values."""
-        self._y_hat = (self.predicted_proba > self.threshold).astype(bool)
+        self._y_hat = (self.target_proba > self.threshold).astype(bool)
         return self._y_hat
 
     @property
@@ -425,12 +439,3 @@ class BinaryClassificationMetrics(ClassificationMetrics):
 
 if __name__ == '__main__':
     pass
-
-
-
-
-
-
-
-
-
