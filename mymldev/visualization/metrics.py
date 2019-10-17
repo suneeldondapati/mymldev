@@ -114,7 +114,7 @@ def plot_roc(
             linestyle=":",
             linewidth=4,
         )
-    ax.plot([0, 1], [1, 0], "k--", lw=2)
+    ax.plot([0, 1], [0, 1], "k--", lw=2)
     ax.set(xlim=[0.0, 1.0], ylim=[0.0, 1.05])
     ax.set_xlabel(f"False Positive Rate", fontsize=text_fontsize)
     ax.set_ylabel(f"True Positive Rate", fontsize=text_fontsize)
