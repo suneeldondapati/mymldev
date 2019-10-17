@@ -14,28 +14,28 @@ class ConfusionMatrix:
 
     Parameters
     ----------
-    y: numpy.array
+    y : numpy.array
         True values.
-    y_hat: numpy.array
+    y_hat : numpy.array
         Predicted values.
 
     Attributes
     ----------
-    y: numpy.array
+    y : numpy.array
         True values.
-    y_hat: numpy.array
+    y_hat : numpy.array
         Predicted values.
-    __binary_y: bool
+    __binary_y : bool
         Check whether DV is binary or not.
-    _cfm: numpy.array
+    _cfm : numpy.array
         Confusion matrix.
-    _fp: numpy.array
+    _fp : numpy.array
         False Positives.
-    _fn: numpy.array
+    _fn : numpy.array
         False Negatives.
-    _tp: numpy.array
+    _tp : numpy.array
         True Positives.
-    _tn: numpy.array
+    _tn : numpy.array
         True Negatives.
     """
 
