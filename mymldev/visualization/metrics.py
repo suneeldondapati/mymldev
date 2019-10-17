@@ -1,19 +1,26 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.metrics as mt
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import label_binarize
 from scipy import interp
+from sklearn.preprocessing import label_binarize
 
 
 def plot_confusion_matrix():
     raise NotImplementedError
 
 
-def plot_roc(y_true: np.array, y_probas: np.array, title: str = 'ROC Curve',
-             plot_micro: bool = False, plot_macro: bool = False,
-             classes_to_plot: list = None, figsize: tuple = None,
-             cmap: str = 'gist_ncar', title_fontsize: str = 'large',
-             text_fontsize: str = 'medium'):
+def plot_roc(
+    y_true: np.array,
+    y_probas: np.array,
+    title: str = "ROC Curve",
+    plot_micro: bool = False,
+    plot_macro: bool = False,
+    classes_to_plot: list = None,
+    figsize: tuple = None,
+    cmap: str = "gist_ncar",
+    title_fontsize: str = "large",
+    text_fontsize: str = "medium",
+):
     """Plot ROC curve.
 
     Parameters
@@ -63,23 +70,31 @@ def plot_roc(y_true: np.array, y_probas: np.array, title: str = 'ROC Curve',
     tpr_dict = {}
     indices_to_plot = np.in1d(classes_to_plot, classes)
     for i, to_plot in enumerate(indices_to_plot):
-        fpr_dict[i], tpr_dict[i], _ = mt.roc_curve(y_true, y_probas[:, i],
-                                                   pos_label=classes[i])
+        fpr_dict[i], tpr_dict[i], _ = mt.roc_curve(y_true, y_probas[:, i], pos_label=classes[i])
         if to_plot:
             roc_auc = mt.auc(fpr_dict[i], tpr_dict[i])
             color = plt.cm.get_cmap(cmap)(float(i) / len(classes))
-            ax.plot(fpr_dict[i], tpr_dict[i], lw=2, color=color,
-                    label=f'ROC curve of class {classes[i]} (area = {roc_auc:.2f})')
+            ax.plot(
+                fpr_dict[i],
+                tpr_dict[i],
+                lw=2,
+                color=color,
+                label=f"ROC curve of class {classes[i]} (area = {roc_auc:.2f})",
+            )
     if plot_micro:
         binarized_y_true = label_binarize(y_true, classes=classes)
         if len(classes) == 2:
-            binarized_y_true = np.hstack((1 - binarized_y_true,
-                                          binarized_y_true))
+            binarized_y_true = np.hstack((1 - binarized_y_true, binarized_y_true))
         fpr, tpr, _ = mt.roc_curve(binarized_y_true.ravel(), y_probas.ravel())
         roc_auc = mt.auc(tpr, fpr)
-        ax.plot(fpr, tpr,
-                label=f'micro-average ROC curve (area = {roc_auc:.2f})',
-                color='deeppink', linestyle=':', linewidth=4)
+        ax.plot(
+            fpr,
+            tpr,
+            label=f"micro-average ROC curve (area = {roc_auc:.2f})",
+            color="deeppink",
+            linestyle=":",
+            linewidth=4,
+        )
     if plot_macro:
         # Compute macro-average ROC curve and it's area.
         # First aggregate all the false positive rates
@@ -89,17 +104,22 @@ def plot_roc(y_true: np.array, y_probas: np.array, title: str = 'ROC Curve',
         for i, _ in enumerate(classes):
             mean_tpr += interp(all_fpr, fpr_dict[i], tpr_dict[i])
         # Finally average it and compute AUC
-        mean_tpr /= len(classes) 
+        mean_tpr /= len(classes)
         roc_auc = mt.auc(all_fpr, mean_tpr)
-        ax.plot(all_fpr, mean_tpr,
-                label=f'macro-average ROC curve (area = {roc_auc:.2f})',
-                color='navy', linestyle=':', linewidth=4)
-    ax.plot([0, 1], [1, 0], 'k--', lw=2)
+        ax.plot(
+            all_fpr,
+            mean_tpr,
+            label=f"macro-average ROC curve (area = {roc_auc:.2f})",
+            color="navy",
+            linestyle=":",
+            linewidth=4,
+        )
+    ax.plot([0, 1], [1, 0], "k--", lw=2)
     ax.set(xlim=[0.0, 1.0], ylim=[0.0, 1.05])
-    ax.set_xlabel(f'False Positive Rate', fontsize=text_fontsize)
-    ax.set_ylabel(f'True Positive Rate', fontsize=text_fontsize)
+    ax.set_xlabel(f"False Positive Rate", fontsize=text_fontsize)
+    ax.set_ylabel(f"True Positive Rate", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
-    ax.legend(loc='lower right', fontsize=text_fontsize)
+    ax.legend(loc="lower right", fontsize=text_fontsize)
     return ax
 
 

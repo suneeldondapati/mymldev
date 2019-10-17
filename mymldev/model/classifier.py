@@ -1,21 +1,18 @@
-import pandas as pd
-import numpy as np
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
+import pandas as pd
 import xgboost as xgb
 
 from ..metrics import BinaryClassificationMetrics
 
-
-__all__ = [
-    'XGBClassifier',
-]
+__all__ = ["XGBClassifier"]
 
 
 SEED = 1310
 
 
 class Classifier(metaclass=ABCMeta):
-
     @abstractmethod
     def __init__(self, params):
         self.params = params
@@ -56,6 +53,7 @@ class XGBClassifier(Classifier):
     params: dict
         Model parameters
     """
+
     def __init__(self, params=None):
         super().__init__(self.__set_xgb_params(params))
         self.model = None
@@ -70,9 +68,13 @@ class XGBClassifier(Classifier):
             raise TypeError("Parameters passed to classifier should be of type 'dict'.")
         unknown_xgb_params = set(xgb_params_in.keys()) - set(xgb_params_default.keys())
         if unknown_xgb_params:
-            raise AttributeError(f'Unknown parameters for XGBoost model: {str(unknown_xgb_params)[1:-1]}.')
-        xgb_params_out = {param: xgb_params_in.get(param, xgb_params_default[param])
-                          for param, value in xgb_params_default.items()}
+            raise AttributeError(
+                f"Unknown parameters for XGBoost model: {str(unknown_xgb_params)[1:-1]}."
+            )
+        xgb_params_out = {
+            param: xgb_params_in.get(param, xgb_params_default[param])
+            for param, value in xgb_params_default.items()
+        }
         return xgb_params_out
 
     def fit(self, X, y):
@@ -87,24 +89,26 @@ class XGBClassifier(Classifier):
         if not self._feature_importance_.empty:
             return self._feature_importance_
         if not self.model:
-            raise AttributeError('Fit the model before calling feature_importance')
+            raise AttributeError("Fit the model before calling feature_importance")
         # imp_vals = self.model.booster().get_fscore()
         imp_vals = self.model.get_booster().get_fscore()
-        imp_dict = {self.feature_names[i]: float(imp_vals.get(feature, 0.))
-                    for i, feature in enumerate(self.feature_names)}
+        imp_dict = {
+            self.feature_names[i]: float(imp_vals.get(feature, 0.0))
+            for i, feature in enumerate(self.feature_names)
+        }
         total = sum(imp_dict.values())
-        feature_imp = {feature: (imp/total) for feature, imp in imp_dict.items()}
+        feature_imp = {feature: (imp / total) for feature, imp in imp_dict.items()}
         feature_imp_sorted = sorted(feature_imp.items(), key=lambda kv: kv[1], reverse=True)
-        self._feature_importance_ = pd.DataFrame(feature_imp_sorted, columns=['IDV', 'Importance'])
+        self._feature_importance_ = pd.DataFrame(feature_imp_sorted, columns=["IDV", "Importance"])
         return self._feature_importance_
 
     def classification_metric(self, X, y, labels=None):
         super().classification_metric(X, y)
         if not self.model:
-            raise AttributeError('Fit the model before calling classification_metric')
+            raise AttributeError("Fit the model before calling classification_metric")
         if len(np.unique(y)) != 2:
             # TODO: Insert code for MultiClassClassificationMetrics
-            raise NotImplementedError('Classification metrics for Multi-class classification is not implemented.')
+            raise NotImplementedError("Multi-class classification metric not implemented.")
         bclf_metrics = BinaryClassificationMetrics(self.model, X, y, labels=labels)
         return bclf_metrics
 

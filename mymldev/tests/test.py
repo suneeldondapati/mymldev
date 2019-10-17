@@ -1,8 +1,9 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn import datasets
-from ..model.classifier import XGBClassifier
+
 from ..metrics.classification import ConfusionMatrix
+from ..model.classifier import XGBClassifier
 from ..utils.data import XYData
 
 

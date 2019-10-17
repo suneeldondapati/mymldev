@@ -1,14 +1,12 @@
-import pandas as pd
-import numpy as np
-import sklearn.metrics as mt
-from ..visualization.metrics import plot_roc
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
+import pandas as pd
+import sklearn.metrics as mt
 
-__all__ = [
-    'BinaryClassificationMetrics',
-    'ConfusionMatrix',
-]
+from ..visualization.metrics import plot_roc
+
+__all__ = ["BinaryClassificationMetrics", "ConfusionMatrix"]
 
 
 class ConfusionMatrix:
@@ -223,9 +221,18 @@ class ConfusionMatrix:
         return (2 * self.tp_) / (2 * self.tp_ + self.fp_ + self.fn_)
 
     def __getattribute__(self, item):
-        if item in {'recall_', 'specificity_', 'precision_', 'negative_predictive_value_',
-                    'false_negative_rate_', 'false_positive_rate_', 'false_discovery_rate_',
-                    'false_omission_rate_', 'accuracy_', 'f1_score_'}:
+        if item in {
+            "recall_",
+            "specificity_",
+            "precision_",
+            "negative_predictive_value_",
+            "false_negative_rate_",
+            "false_positive_rate_",
+            "false_discovery_rate_",
+            "false_omission_rate_",
+            "accuracy_",
+            "f1_score_",
+        }:
             value = super(ConfusionMatrix, self).__getattribute__(item)
             # modifies the value of the attribute when called
             return np.round(value * 100, 2)
@@ -307,6 +314,7 @@ class BinaryClassificationMetrics(ClassificationMetrics):
     _gains_table: pandas.DataFrame
         Gains table.
     """
+
     cfm: pd.DataFrame
 
     def __init__(self, clf, X: pd.DataFrame, y: pd.Series, labels: dict = None):
@@ -323,6 +331,11 @@ class BinaryClassificationMetrics(ClassificationMetrics):
     def auc_(self):
         """float: Area Under the Curve."""
         return mt.auc(self.__fpr, self.__tpr)
+
+    @property
+    def gini_coefficient_(self):
+        """float: Gini Coefficient"""
+        return (self.auc_ - 0.5) / 0.5
 
     @property
     def plot_roc_(self):
@@ -350,46 +363,49 @@ class BinaryClassificationMetrics(ClassificationMetrics):
         """pandas.DataFrame: Gains table."""
         if self._gains_table.empty:
             df = pd.DataFrame()
-            df['y'] = self.y.values
-            df['pred_prob'] = self.target_proba
+            df["y"] = self.y.values
+            df["pred_prob"] = self.target_proba
             try:
-                df['Decile'] = pd.qcut(df['pred_prob'], 10, labels=False)
+                df["Decile"] = pd.qcut(df["pred_prob"], 10, labels=False)
             except ValueError:
-                df['Decile'] = pd.qcut(df['pred_prob'].rank(method='first'), 10, labels=False)
-            df = df.rename_axis('unique_id').reset_index()
-            lift_df = (df
-                       .groupby(['Decile', 'y'])['unique_id']
-                       .count()
-                       .unstack('y')
-                       .sort_index(ascending=False))
+                df["Decile"] = pd.qcut(df["pred_prob"].rank(method="first"), 10, labels=False)
+            df = df.rename_axis("unique_id").reset_index()
+            lift_df = (
+                df.groupby(["Decile", "y"])["unique_id"]
+                .count()
+                .unstack("y")
+                .sort_index(ascending=False)
+            )
             lift_df = lift_df.fillna(0).astype(int)
             lift_df.index = np.arange(10)
             gains_df = pd.DataFrame()
-            kwargs = {'Decile': lift_df.index + 1,
-                      'No. of Observations': lift_df.sum(axis=1),
-                      'Number of Targets': lift_df[1],
-                      'Cumulative Targets': lift_df[1].cumsum(),
-                      '% of Targets': lift_df[1] / lift_df[1].sum() * 100,
-                      'Gain': lift_df[1].cumsum() / lift_df[1].sum() * 100,
-                      'Random Targets': lift_df[1].sum() / 10}
+            kwargs = {
+                "Decile": lift_df.index + 1,
+                "No. of Observations": lift_df.sum(axis=1),
+                "Number of Targets": lift_df[1],
+                "Cumulative Targets": lift_df[1].cumsum(),
+                "% of Targets": lift_df[1] / lift_df[1].sum() * 100,
+                "Gain": lift_df[1].cumsum() / lift_df[1].sum() * 100,
+                "Random Targets": lift_df[1].sum() / 10,
+            }
             gains_df = gains_df.assign(**kwargs)
-            gains_df['Lift'] = lift_df[1] / gains_df['Random Targets']
-            gains_df['Cumulative Lift'] = gains_df['Lift'].cumsum()
+            gains_df["Lift"] = lift_df[1] / gains_df["Random Targets"]
+            gains_df["Cumulative Lift"] = gains_df["Lift"].cumsum()
             # gains_df['Cumulative Lift'] = (gains_df['Cumulative Targets'] /
             #                                (lift_df[1].sum() * (lift_df.index + 1) / 10))
             gains_sum = pd.DataFrame({}, columns=gains_df.columns, index=[0])
-            gains_sum['Decile'] = 'Total'
-            gains_sum['No. of Observations'] = gains_df['No. of Observations'].sum()
-            gains_sum['Number of Targets'] = gains_df['Number of Targets'].sum()
+            gains_sum["Decile"] = "Total"
+            gains_sum["No. of Observations"] = gains_df["No. of Observations"].sum()
+            gains_sum["Number of Targets"] = gains_df["Number of Targets"].sum()
             gains_table = pd.concat([gains_df, gains_sum], ignore_index=True)
-            gains_table.fillna('', inplace=True)
+            gains_table.fillna("", inplace=True)
             self._gains_table = gains_table
         return self._gains_table
 
     @property
     def lift_score_(self):
         """float: Lift score."""
-        return self.gains_table_['Lift'].iloc[0]
+        return self.gains_table_["Lift"].iloc[0]
 
     @property
     def y_hat(self):
@@ -430,12 +446,12 @@ class BinaryClassificationMetrics(ClassificationMetrics):
             self.labels = {}
         label_0 = self.labels.get(0, 0)
         label_1 = self.labels.get(1, 1)
-        table = pd.DataFrame(confusion_matrix.table_,
-                             columns=[label_0, label_1],
-                             index=[label_0, label_1])
-        self.cfm = table.rename_axis(f'threshold ({self.threshold})').reset_index()
+        table = pd.DataFrame(
+            confusion_matrix.table_, columns=[label_0, label_1], index=[label_0, label_1]
+        )
+        self.cfm = table.rename_axis(f"threshold ({self.threshold})").reset_index()
         return confusion_matrix
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
